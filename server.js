@@ -103,8 +103,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
    `CREATE TABLE IF NOT EXISTS images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT,
-      description TEXT,
-      url TEXT NOT NULL
+      url TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       `
     );
@@ -182,10 +182,7 @@ app.get('/', (req, res) => {
             <label for="title">Título:</label>
             <input type="text" name="title" id="title" placeholder="Título de las imágenes" required>
         </div>
-        <div>
-            <label for="description">Descripción:</label>
-            <textarea name="description" id="description" placeholder="Descripción de las imágenes" required></textarea>
-        </div>
+       
         <button type="submit">Subir imágenes</button>
     </form>
       </div>
@@ -197,11 +194,14 @@ app.get('/', (req, res) => {
 
 app.post('/upload-images', upload.array('images', 50), async (req, res) => {
   try {
-      const { title, description } = req.body
+      const { title } = req.body
       const uploadedFiles = req.files
 
       if (!Array.isArray(uploadedFiles) || uploadedFiles.length === 0) {
           return res.status(400).json({ message: 'No se subieron imágenes.' })
+      }
+      if(!title){
+        return res.status(400).send('le falta titulo pa!')
       }
 
       const uploadPromises = uploadedFiles.map((file) =>
@@ -218,8 +218,8 @@ app.post('/upload-images', upload.array('images', 50), async (req, res) => {
       // Guarda las URLs en la base de datos
       const queries = results.map((result) =>
           db.execute(
-              'INSERT INTO images (title, description, url) VALUES (?, ?, ?)',
-              [title, description, result.secure_url]
+              'INSERT INTO images (title, url) VALUES (?, ?)',
+              [title, result.secure_url]
           )
       );
 
