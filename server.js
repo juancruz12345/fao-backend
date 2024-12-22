@@ -76,27 +76,33 @@ app.use(bodyParser.urlencoded({ extended: true }));
     `);
 
     await db.execute(`
-      CREATE TABLE IF NOT EXISTS tournament (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        players INTEGER NOT NULL,
-        rounds_amount INTEGER,
-        location TEXT NOT NULL,
-        description TEXT NOT NULL,
-        date TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      CREATE TABLE IF NOT EXISTS tournaments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    location TEXT,
+    start_date DATE NOT NULL,
+    end_date DATE
+);
     `);
-
     await db.execute(`
       CREATE TABLE IF NOT EXISTS rounds (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tournament_id INTEGER NOT NULL,
-        round_number INTEGER NOT NULL,
-        date DATE,
-        results TEXT NOT NULL,
-        FOREIGN KEY (tournament_id) REFERENCES tournament(id)
-      );
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tournament_id INTEGER NOT NULL,
+    round_number INTEGER NOT NULL,
+    FOREIGN KEY (tournament_id) REFERENCES tournaments (id)
+);
+    `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_id INTEGER NOT NULL,
+    player1_id INTEGER NOT NULL,
+    player2_id INTEGER NOT NULL,
+    result TEXT NOT NULL, 
+    FOREIGN KEY (round_id) REFERENCES rounds (id),
+    FOREIGN KEY (player1_id) REFERENCES players (id),
+    FOREIGN KEY (player2_id) REFERENCES players (id)
+);
     `);
 
     await db.execute(
@@ -108,6 +114,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
       );
       `
     );
+   await db.execute( `CREATE TABLE IF NOT EXISTS players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    country TEXT
+);
+    `
+  );
 
 
     console.log('Tablas creadas (si no existían)');
@@ -151,21 +165,59 @@ app.get('/', (req, res) => {
 
       </div>
 
+       <div>
+    <form action="/players" method="POST">
+  <h1>Subir Jugador</h1>
+  <label>Nombre del jugador:</label><br>
+  <input type="text" name="name" required><br>
+   <label>Rating:</label><br>
+  <input type="text" name="rating" required><br>
+  <label>Pais:</label><br>
+  <input type="text" name="country"><br>
+  <button type="submit">Enviar</button>
+</form>
+
+      </div>
+
       <div>
-    <form action="/tournament" method="POST">
+    <form action="/tournaments" method="POST">
   <h1>Subir Torneo</h1>
   <label>Nombre del torneo:</label><br>
-  <input type="text" name="title" required><br>
-  <label>Cant.Jugadores:</label><br>
-  <input type="number" name="players" required><br>
-  <label>Cant. Rondas:</label><br>
-  <input type="number" name="rounds_amount" required><br>
+  <input type="text" name="name" required><br>
    <label>Locacion:</label><br>
   <input type="text" name="location" required><br>
-  <label>Descripcion:</label><br>
-  <textarea name="description" required></textarea><br>
-   <label>Fecha:</label><br>
-  <input type="date" name="date" required><br>
+   <label>Fecha de inicio:</label><br>
+  <input type="date" name="start_date" required><br>
+  <label>Fecha de culminacion:</label><br>
+  <input type="date" name="end_date"><br>
+  <button type="submit">Enviar</button>
+</form>
+
+      </div>
+
+        <div>
+    <form action="/rounds" method="POST">
+  <h1>Subir Ronda</h1>
+  <label>ID del torneo:</label><br>
+  <input type="text" name="tournament_id" required><br>
+   <label>Numero de ronda:</label><br>
+  <input type="text" name="round_number" required><br>
+  <button type="submit">Enviar</button>
+</form>
+
+      </div>
+
+         <div>
+    <form action="/matches" method="POST">
+  <h1>Subir Match</h1>
+  <label>ID de la ronda:</label><br>
+  <input type="text" name="round_id" required><br>
+   <label>ID jugador 1:</label><br>
+  <input type="text" name="player1_id" required><br>
+   <label>ID jugador 2:</label><br>
+  <input type="text" name="player2_id" required><br>
+   <label>Resultado:</label><br>
+  <input type="text" name="result" required><br>
   <button type="submit">Enviar</button>
 </form>
 
@@ -232,20 +284,40 @@ app.post('/upload-images', upload.array('images', 50), async (req, res) => {
   }
 })
 
+app.post('/players', async(req,res)=>{
 
-app.post('/tournament', async(req,res)=>{
-
-  const { title,players,rounds_amount, location, description, date } = req.body;
+  const {name, rating, country} = req.body
   
-
-  if (!title || !players || !location || !description || !date) {
-    return res.status(400).send('Título, locacion, descripcion y fecha son requeridos papu')
+  if (!name || !rating) {
+    return res.status(400).send('Nombre y rating son requeridos papulince')
   }
 
   try {
     await db.execute(
-      'INSERT INTO tournament (title, players, rounds_amount, location, description, date) VALUES (?, ?, ?, ?, ?, ?)',
-      [title, players, rounds_amount, location, description, date]
+      'INSERT INTO players (name, rating, country) VALUES (?, ?, ?)',
+      [name, rating, country]
+    )
+    res.status(201).send('Jugador agregado exitosamente')
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error al agregar el jugador')
+  }
+
+})
+
+app.post('/tournaments', async(req,res)=>{
+
+  const { name,location, start_date, end_date } = req.body;
+  
+
+  if (!name || !location || !start_date) {
+    return res.status(400).send('Título, locacion y fecha de inicio son requeridos papu')
+  }
+
+  try {
+    await db.execute(
+      'INSERT INTO tournaments (name, location, start_date, end_date) VALUES (?, ?, ?, ?)',
+      [name, location,start_date, end_date]
     )
     res.status(201).send('Torneo agregado exitosamente')
   } catch (error) {
@@ -254,105 +326,49 @@ app.post('/tournament', async(req,res)=>{
   }
 })
 
-app.post('/tournament/rounds', async (req, res) => {
+app.post('/rounds', async(req,res)=>{
 
+  const {tournament_id, round_number} = req.body
+
+  if (!tournament_id || !round_number) {
+    return res.status(400).send('id de torneo y numero de ronda son requeridos papulino')
+  }
   
+  try {
+    await db.execute(
+      'INSERT INTO rounds (tournament_id, round_number) VALUES (?, ?)',
+      [tournament_id, round_number]
+    )
+    res.status(201).send('Ronda agregado exitosamente')
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error al agregar ronda')
+  }
 
-  const { tournamentId, round_number, results } = req.body
+})
 
+app.post('/matches', async(req,res)=>{
 
-
-  if (!tournamentId || !round_number || !results) {
-
-      return res.status(400).json({ message: 'Se requiere round_number y un array de resultados.' })
-
+  const {round_id, player1_id, player2_id, result} = req.body
+  
+  if (!round_id || !player1_id || !player2_id || !result) {
+    return res.status(400).send('ID de la ronda,de los jugadores y resultado son requeridos papulince')
   }
 
   try {
-
-      // Verificar que el torneo existe
-
-      const tournament = await db.execute(`SELECT * FROM tournament WHERE id = ?`, [tournamentId])
-
-      if (tournament.rows.length === 0) {
-
-          return res.status(404).json({ message: 'Torneo no encontrado.' })
-
-      }
-
-      await db.execute(
-
-          `INSERT INTO rounds (tournament_id, round_number, results) VALUES (?, ?, ?)`,
-
-          [tournamentId, round_number, JSON.stringify(results)]
-
-      )
-
-      res.status(201).json({ message: 'Ronda creada con éxito.' })
-
+    await db.execute(
+      'INSERT INTO matches (round_id, player1_id,  player2_id, result) VALUES (?, ?, ?, ?)',
+      [round_id, player1_id, player2_id, result]
+    )
+    res.status(201).send('Match agregado exitosamente')
   } catch (error) {
-
-      console.error(error)
-
-      res.status(500).json({ message: 'Error al crear la ronda.' })
-
+    console.error(error);
+    res.status(500).send('Error al agregar el Match')
   }
 
 })
 
-// Ruta para mostrar un formulario básico de carga de rondas
 
-app.get('/form/rounds', (req, res) => {
-
-  res.send(`
-
-      <!DOCTYPE html>
-
-      <html lang="en">
-
-      <head>
-
-          <meta charset="UTF-8">
-
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-          <title>Cargar Rondas</title>
-
-      </head>
-
-      <body>
-
-          <h1>Formulario para Cargar Rondas</h1>
-
-          <form action="/tournament/rounds" method="POST">
-             <label for="round_number">ID del torneo:</label>
-
-              <input type="number" name="tournamentId" required>
-
-
-              <label for="round_number">Número de Ronda:</label>
-
-              <input type="number" id="round_number" name="round_number" required>
-
-              <br><br>
-
-              <label for="results">Resultados (separados por comas):</label>
-
-              <input type="text" id="results" name="results" placeholder="Ejemplo: 1-0,0-1,1/2-1/2" required>
-
-              <br><br>
-
-              <button type="submit">Cargar Ronda</button>
-
-          </form>
-
-      </body>
-
-      </html>
-
-  `)
-
-})
 
 
 
@@ -434,6 +450,94 @@ app.get('/events', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los eventos.' })
   }
 })
+
+app.get('/tournaments', async(req,res)=>{
+  try {
+    const torneos = await db.execute('SELECT * FROM tournaments')
+    res.json(torneos.rows)
+  } catch (error) {
+    console.error('Error al obtener torneos:', error)
+    res.status(500).json({ error: 'Error al obtener los torneos.' })
+  }
+})
+app.get('/rounds', async(req,res)=>{
+  try {
+    const rounds = await db.execute('SELECT * FROM rounds')
+    res.json(rounds.rows)
+  } catch (error) {
+    console.error('Error al obtener rounds:', error)
+    res.status(500).json({ error: 'Error al obtener los rounds.' })
+  }
+})
+app.get('/matches', async(req,res)=>{
+  try {
+    const matches = await db.execute('SELECT * FROM matches')
+    res.json(matches.rows)
+  } catch (error) {
+    console.error('Error al obtener matches:', error)
+    res.status(500).json({ error: 'Error al obtener los matches.' })
+  }
+})
+app.get('/players', async(req,res)=>{
+  try {
+    const players = await db.execute('SELECT * FROM players')
+    res.json(players.rows)
+  } catch (error) {
+    console.error('Error al obtener players:', error)
+    res.status(500).json({ error: 'Error al obtener los players.' })
+  }
+})
+
+app.get('/tournament/:id/standings', async(req,res)=>{
+  const { id } = req.params;
+
+    try {
+       
+      const standings = await db.execute(
+        `
+            SELECT 
+                p.id AS player_id,
+                p.name AS player_name,
+                SUM(CASE 
+                    WHEN m.result = '1-0' AND m.player1_id = p.id THEN 1
+                    WHEN m.result = '0-1' AND m.player2_id = p.id THEN 1
+                    WHEN m.result = '1/2-1/2' THEN 0.5
+                    ELSE 0 
+                END) AS points
+            FROM players p
+            LEFT JOIN matches m 
+                ON p.id = m.player1_id OR p.id = m.player2_id
+            LEFT JOIN rounds r
+                ON r.id = m.round_id
+            WHERE r.tournament_id = ?
+            GROUP BY p.id, p.name
+            ORDER BY points DESC;
+        `
+        ,
+        [id]
+      )
+
+
+        if (!standings) {
+            return res.status(404).json({ message: 'No se encontró el torneo o no hay datos disponibles.' });
+        }
+
+        // Responder con la clasificación
+        res.json(standings.rows);
+    } catch (error) {
+        console.error('Error al obtener la clasificación:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+})
+
+
+
+
+
+
+
+
+
 
 // Manejador de errores genérico
 app.use((err, req, res, next) => {
