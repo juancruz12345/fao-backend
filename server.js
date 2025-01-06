@@ -37,7 +37,8 @@ const db = createClient({ url: process.env.DB_URL, authToken: process.env.DB_TOK
 
 const ACCEPTED_ORIGINS = [
   'http://localhost:5173',
-  'http://127.0.0.1:5173' // Incluye posibles variantes del origen
+  'http://127.0.0.1:5173',
+  'https://federacionajedrezolavarria.onrender.com/' // Incluye posibles variantes del origen
 ];
 
 
