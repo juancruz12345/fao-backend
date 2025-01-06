@@ -69,6 +69,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
         title TEXT NOT NULL,
         location TEXT NOT NULL,
         description TEXT NOT NULL,
+        type TEXT,
         date TEXT NOT NULL,
         time TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -79,6 +80,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
       CREATE TABLE IF NOT EXISTS tournaments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    mode TEXT NOT NULL,
     location TEXT,
     start_date DATE NOT NULL,
     end_date DATE
@@ -108,8 +110,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
     await db.execute(
    `CREATE TABLE IF NOT EXISTS images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
+      title TEXT NOT NULL,
       url TEXT NOT NULL,
+      album TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       `
@@ -117,8 +120,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
    await db.execute( `CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    club TEXT,
+    category TEXT,
     rating INTEGER NOT NULL,
-    country TEXT
+    elo TEXT,
+    id_fide TEXT
 );
     `
   );
@@ -143,6 +149,8 @@ app.get('/', (req, res) => {
           <input type="text" name="location" required><br>
           <label>Descripción:</label><br>
           <textarea name="description" required></textarea><br>
+          <label>Tipo de evento:</label><br>
+          <textarea name="type"></textarea><br>
           <label>Fecha:</label><br>
           <input type="date" name="date" required><br>
           <label>Horario:</label><br>
@@ -168,12 +176,18 @@ app.get('/', (req, res) => {
        <div>
     <form action="/players" method="POST">
   <h1>Subir Jugador</h1>
-  <label>Nombre del jugador:</label><br>
+  <label>Nombre y apellido del jugador:</label><br>
   <input type="text" name="name" required><br>
+   <label>Club:</label><br>
+  <input type="text" name="club" ><br>
+  <label>Categoria:</label><br>
+  <input type="text" name="category" ><br>
    <label>Rating:</label><br>
   <input type="text" name="rating" required><br>
-  <label>Pais:</label><br>
-  <input type="text" name="country"><br>
+  <label>Elo:</label><br>
+  <input type="text" name="elo"><br>
+  <label>ID Fide:</label><br>
+  <input type="text" name="id_fide"><br>
   <button type="submit">Enviar</button>
 </form>
 
@@ -184,6 +198,8 @@ app.get('/', (req, res) => {
   <h1>Subir Torneo</h1>
   <label>Nombre del torneo:</label><br>
   <input type="text" name="name" required><br>
+  <label>Modalidad del torneo:</label><br>
+  <input type="text" name="mode" required><br>
    <label>Locacion:</label><br>
   <input type="text" name="location" required><br>
    <label>Fecha de inicio:</label><br>
@@ -233,6 +249,8 @@ app.get('/', (req, res) => {
         <div>
             <label for="title">Título:</label>
             <input type="text" name="title" id="title" placeholder="Título de las imágenes" required>
+             <label for="title">Título del Album:</label>
+            <input type="text" name="album" id="title" placeholder="Título del album" required>
         </div>
        
         <button type="submit">Subir imágenes</button>
@@ -246,14 +264,14 @@ app.get('/', (req, res) => {
 
 app.post('/upload-images', upload.array('images', 50), async (req, res) => {
   try {
-      const { title } = req.body
+      const { title, album } = req.body
       const uploadedFiles = req.files
 
       if (!Array.isArray(uploadedFiles) || uploadedFiles.length === 0) {
           return res.status(400).json({ message: 'No se subieron imágenes.' })
       }
-      if(!title){
-        return res.status(400).send('le falta titulo pa!')
+      if(!title || !album){
+        return res.status(400).send('le falta titulo  o titulo del album paparulo!')
       }
 
       const uploadPromises = uploadedFiles.map((file) =>
@@ -270,8 +288,8 @@ app.post('/upload-images', upload.array('images', 50), async (req, res) => {
       // Guarda las URLs en la base de datos
       const queries = results.map((result) =>
           db.execute(
-              'INSERT INTO images (title, url) VALUES (?, ?)',
-              [title, result.secure_url]
+              'INSERT INTO images (title, album, url) VALUES (?, ?, ?)',
+              [title,album, result.secure_url]
           )
       );
 
@@ -286,7 +304,7 @@ app.post('/upload-images', upload.array('images', 50), async (req, res) => {
 
 app.post('/players', async(req,res)=>{
 
-  const {name, rating, country} = req.body
+  const {name,club,category, rating,elo, id_fide} = req.body
   
   if (!name || !rating) {
     return res.status(400).send('Nombre y rating son requeridos papulince')
@@ -294,8 +312,8 @@ app.post('/players', async(req,res)=>{
 
   try {
     await db.execute(
-      'INSERT INTO players (name, rating, country) VALUES (?, ?, ?)',
-      [name, rating, country]
+      'INSERT INTO players (name, club, category, rating, elo, id_fide) VALUES (?, ?, ?, ?, ?, ?)',
+      [name,club,category, rating,elo, id_fide]
     )
     res.status(201).send('Jugador agregado exitosamente')
   } catch (error) {
@@ -307,17 +325,17 @@ app.post('/players', async(req,res)=>{
 
 app.post('/tournaments', async(req,res)=>{
 
-  const { name,location, start_date, end_date } = req.body;
+  const { name,mode,location, start_date, end_date } = req.body;
   
 
-  if (!name || !location || !start_date) {
+  if (!name || !mode || !location || !start_date) {
     return res.status(400).send('Título, locacion y fecha de inicio son requeridos papu')
   }
 
   try {
     await db.execute(
-      'INSERT INTO tournaments (name, location, start_date, end_date) VALUES (?, ?, ?, ?)',
-      [name, location,start_date, end_date]
+      'INSERT INTO tournaments (name, mode, location, start_date, end_date) VALUES (?, ?, ?, ?, ?)',
+      [name, mode, location,start_date, end_date]
     )
     res.status(201).send('Torneo agregado exitosamente')
   } catch (error) {
@@ -372,7 +390,6 @@ app.post('/matches', async(req,res)=>{
 
 
 
-// Ruta para agregar noticias
 app.post('/news', upload.single('image'), async (req, res) => {
   const { title, content } = req.body
   const image_url = req.file?.path // URL generada por Cloudinary
@@ -399,14 +416,14 @@ app.post('/news', upload.single('image'), async (req, res) => {
 // Ruta para agregar eventos
 app.post('/events', async (req, res) => {
   try {
-    const { title, location, description, date, time } = req.body
+    const { title, location, description,type, date, time } = req.body
     if (!title || !location || !description || !date || !time) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios.' })
     }
 
     await db.execute(
-      'INSERT INTO events (title, location, description, date, time) VALUES (?, ?, ?, ?, ?)',
-      [title, location, description, date, time]
+      'INSERT INTO events (title, location, description, type, date, time) VALUES (?, ?, ?, ?, ?, ?)',
+      [title, location, description,type, date, time]
     )
 
     res.status(201).json({ message: 'Evento agregado exitosamente.' })
@@ -415,6 +432,9 @@ app.post('/events', async (req, res) => {
     res.status(500).json({ error: 'Error al agregar el evento.' })
   }
 })
+
+
+///////////////GETERS////////////////////////////////////////////////////////////////////////
 
 //Ruta para obtener imagenes
 app.get('/images', async(req,res)=>{
@@ -432,13 +452,28 @@ app.get('/images', async(req,res)=>{
 // Ruta para obtener noticias
 app.get('/news', async (req, res) => {
   try {
-    const noticias = await db.execute('SELECT * FROM news')
-    res.json(noticias.rows)
+    const { offset = 0, limit = 10 } = req.query;
+
+    if (isNaN(offset) || isNaN(limit)) {
+      return res.status(400).json({ error: 'Invalid query parameters' });
+    }
+
+    const query = 'SELECT * FROM news LIMIT ? OFFSET ?';
+    const params = [parseInt(limit), parseInt(offset)];
+    const result = await db.execute(query, params);
+    
+    res.status(200).json({
+      data: result.rows,
+      offset: parseInt(offset),
+      limit: parseInt(limit),
+    });
   } catch (error) {
-    console.error('Error al obtener noticias:', error)
-    res.status(500).json({ error: 'Error al obtener las noticias.' })
+    console.error("Error in /news route:", error); // Agregar log detallado
+    res.status(500).json({ error: 'Error fetching news' });
   }
-})
+});
+
+
 
 // Ruta para obtener eventos
 app.get('/events', async (req, res) => {
@@ -478,6 +513,72 @@ app.get('/matches', async(req,res)=>{
     res.status(500).json({ error: 'Error al obtener los matches.' })
   }
 })
+app.get('/tournaments/all', async (req, res) => {
+  try {
+    const allData = await db.execute(`
+      SELECT 
+        tournaments.id AS tournament_id,
+        tournaments.name AS tournament_name,
+        tournaments.location AS tournament_location,
+        tournaments.start_date AS tournament_start_date,
+        rounds.round_number AS round_number,
+        matches.player1_id AS player1_id,
+        matches.player2_id AS player2_id,
+        matches.result AS match_result
+      FROM tournaments
+      LEFT JOIN rounds ON tournaments.id = rounds.tournament_id
+      LEFT JOIN matches ON rounds.id = matches.round_id
+    `);
+
+    const rows = allData.rows;
+
+    // Estructurar los datos
+    const structuredData = rows.reduce((acc, row) => {
+      // Buscar o crear el torneo
+      let tournament = acc.find(t => t.id === row.tournament_id);
+      if (!tournament) {
+        tournament = {
+          id: row.tournament_id,
+          name: row.tournament_name,
+          location: row.tournament_location,
+          start_date:row.tournament_start_date,
+          rounds: [],
+        };
+        acc.push(tournament);
+      }
+
+      // Buscar o crear la ronda dentro del torneo
+      if (row.round_number) {
+        let round = tournament.rounds.find(r => r.number === row.round_number);
+        if (!round) {
+          round = {
+            number: row.round_number,
+            matches: [],
+          };
+          tournament.rounds.push(round);
+        }
+
+        // Agregar match a la ronda
+        if (row.player1_id) {
+          round.matches.push({
+            player1_id: row.player1_id,
+            player2_id: row.player2_id,
+            result: row.match_result,
+          });
+        }
+      }
+
+      return acc;
+    }, []);
+
+    res.json(structuredData);
+  } catch (error) {
+    console.error('Error al estructurar los datos:', error);
+    res.status(500).json({ error: 'Error al estructurar los datos.' });
+  }
+});
+
+
 app.get('/players', async(req,res)=>{
   try {
     const players = await db.execute('SELECT * FROM players')
@@ -529,6 +630,71 @@ app.get('/tournament/:id/standings', async(req,res)=>{
         res.status(500).json({ message: 'Error interno del servidor.' });
     }
 })
+app.get('/player/:id/matches', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+      const query = `
+          SELECT 
+              m.id AS match_id,
+              t.name AS tournament_name,
+              r.round_number,
+              p1.name AS player1_name,
+              p2.name AS player2_name,
+              m.result,
+              t.start_date AS tournament_start_date,
+              t.end_date AS tournament_end_date,
+              CASE 
+                  WHEN m.player1_id = ? AND m.result = '1-0' THEN 1
+                  WHEN m.player2_id = ? AND m.result = '0-1' THEN 1
+                  ELSE 0
+              END AS is_victory,
+              CASE 
+                  WHEN m.player1_id = ? AND m.result = '0-1' THEN 1
+                  WHEN m.player2_id = ? AND m.result = '1-0' THEN 1
+                  ELSE 0
+              END AS is_defeat,
+              CASE 
+                  WHEN m.result = '1/2-1/2' THEN 1
+                  ELSE 0
+              END AS is_draw
+          FROM matches m
+          JOIN rounds r ON m.round_id = r.id
+          JOIN tournaments t ON r.tournament_id = t.id
+          JOIN players p1 ON m.player1_id = p1.id
+          JOIN players p2 ON m.player2_id = p2.id
+          WHERE m.player1_id = ? OR m.player2_id = ?
+          ORDER BY t.start_date, r.round_number;
+      `;
+
+      const result = await db.execute(query, [id, id, id, id, id, id]);
+
+      const matches = result.rows.map(row => ({
+          match_id: row[0],
+          tournament_name: row[1],
+          round_number: row[2],
+          player1_name: row[3],
+          player2_name: row[4],
+          result: row[5],
+          tournament_start_date: row[6],
+          tournament_end_date: row[7],
+          is_victory: row[8],
+          is_defeat: row[9],
+          is_draw: row[10],
+      }));
+
+      // Calcular métricas
+      const totalVictories = matches.reduce((sum, match) => sum + match.is_victory, 0);
+      const totalDefeats = matches.reduce((sum, match) => sum + match.is_defeat, 0);
+      const totalDraws = matches.reduce((sum, match) => sum + match.is_draw, 0);
+
+      res.json({ matches, totalVictories, totalDefeats, totalDraws });
+  } catch (error) {
+      console.error('Error al obtener las partidas del jugador:', error);
+      res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
 
 
 
