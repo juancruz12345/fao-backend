@@ -186,8 +186,41 @@ app.get('/', (req, res) => {
           <input type="date" name="date" id="event-date" ><br>
           <label>Horario:</label><br>
           <input type="time" name="time" id="event-time" ><br>
-          <button type="submit">Enviar</button>
+          <button type="submit">Actualizar</button>
 </form>
+<form id="deleteForm-event">
+    <label for="id">ID del Evento a Eliminar:</label>
+    <input type="number" id="id-event-delete" name="id" required>
+    <button type="submit">Eliminar Evento</button>
+  </form>
+  <script>
+          document.getElementById('deleteForm-event').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('id-event-delete').value;
+            if (id) {
+            try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/event/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const result = await response.json();
+                console.log(response)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar jugador.');
+              }
+            }
+          });
+  </script>
  <script>
           document.getElementById('update-form-event').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -241,28 +274,23 @@ app.get('/', (req, res) => {
 </form>
 
 <form id="deleteForm-news">
-    <label for="id">ID del Elemento a Eliminar:</label>
+    <label for="id">ID de la noticia a Eliminar:</label>
     <input type="number" id="id-news" name="id" required>
-    <button type="submit">Eliminar</button>
+    <button type="submit">Eliminar Noticia</button>
   </form>
 
 <script>
           document.getElementById('deleteForm-news').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const id = document.getElementById('id-news').value;
-            
-
             if (id) {
-           
-              try {
+            try {
                 // Aquí debes usar el template string correctamente
                 const response = await fetch(\`/news/\${id}\`, {
                   method: 'DELETE',
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                 
                 });
 
                 const result = await response.json();
@@ -279,9 +307,9 @@ app.get('/', (req, res) => {
             }
           });
         </script>
-
-
       </div>
+
+
 
        <div class='div-form'>
     <form action="/players" method="POST">
@@ -301,7 +329,7 @@ app.get('/', (req, res) => {
   <button type="submit">Enviar</button>
 </form>
  <form id='update-form-player' method="PUT">
-  <h1>Subir Jugador</h1>
+  <h1>Actualizar Jugador</h1>
    <label>ID del jugador:</label><br>
   <input type="text" name="id" id="id-player" required><br>
   <label>Nombre y apellido del jugador:</label><br>
@@ -318,6 +346,39 @@ app.get('/', (req, res) => {
   <input type="text" name="id_fide" id="id-fide-player"><br>
   <button type="submit">Enviar</button>
 </form>
+<form id="deleteForm-player">
+    <label for="id">ID del Jugador a Eliminar:</label>
+    <input type="number" id="id-player-delete" name="id" required>
+    <button type="submit">Eliminar Jugador</button>
+  </form>
+  <script>
+          document.getElementById('deleteForm-player').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('id-player-delete').value;
+            if (id) {
+            try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/player/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const result = await response.json();
+                console.log(response)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar jugador.');
+              }
+            }
+          });
+  </script>
  <script>
           document.getElementById('update-form-player').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -361,7 +422,7 @@ app.get('/', (req, res) => {
         </script>
       </div>
 
-      <div>
+      <div class="div-form">
     <form action="/tournaments" method="POST">
   <h1>Subir Torneo</h1>
   <label>Nombre del torneo:</label><br>
@@ -376,10 +437,43 @@ app.get('/', (req, res) => {
   <input type="date" name="end_date"><br>
   <button type="submit">Enviar</button>
 </form>
+<form id="deleteForm-tournament">
+    <label for="id">ID del Evento a Eliminar:</label>
+    <input type="number" id="id-tournament-delete" name="id" required>
+    <button type="submit">Eliminar Torneo</button>
+  </form>
+  <script>
+          document.getElementById('deleteForm-tournament').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('id-tournament-delete').value;
+            if (id) {
+            try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/tournament/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const result = await response.json();
+                console.log(response)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar Torneo.');
+              }
+            }
+          });
+  </script>
 
       </div>
 
-        <div>
+        <div class="div-form">
     <form action="/rounds" method="POST">
   <h1>Subir Ronda</h1>
   <label>ID del torneo:</label><br>
@@ -388,10 +482,43 @@ app.get('/', (req, res) => {
   <input type="text" name="round_number" required><br>
   <button type="submit">Enviar</button>
 </form>
+<form id="deleteForm-round">
+    <label for="id">ID de la ronda a Eliminar:</label>
+    <input type="number" id="id-round-delete" name="id" required>
+    <button type="submit">Eliminar Ronda</button>
+  </form>
+  <script>
+          document.getElementById('deleteForm-round').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('id-round-delete').value;
+            if (id) {
+            try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/round/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const result = await response.json();
+                console.log(response)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar jugador.');
+              }
+            }
+          });
+  </script>
 
       </div>
 
-         <div>
+         <div class="div-form">
     <form action="/matches" method="POST">
   <h1>Subir Match</h1>
   <label>ID de la ronda:</label><br>
@@ -404,6 +531,39 @@ app.get('/', (req, res) => {
   <input type="text" name="result" required><br>
   <button type="submit">Enviar</button>
 </form>
+<form id="deleteForm-match">
+    <label for="id">ID del match a Eliminar:</label>
+    <input type="number" id="id-match-delete" name="id" required>
+    <button type="submit">Eliminar Match</button>
+  </form>
+  <script>
+          document.getElementById('deleteForm-match').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('id-match-delete').value;
+            if (id) {
+            try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/match/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const result = await response.json();
+                console.log(response)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar match.');
+              }
+            }
+          });
+  </script>
 
       </div>
 
@@ -484,7 +644,6 @@ app.post('/players', async(req,res)=>{
   if (!name || !rating) {
     return res.status(400).send('Nombre y rating son requeridos papulince')
   }
-
   try {
     await db.execute(
       'INSERT INTO players (name, club, category, rating, elo, id_fide) VALUES (?, ?, ?, ?, ?, ?)',
@@ -771,6 +930,64 @@ app.get('/players', async(req,res)=>{
   }
 })
 
+app.get('/tournament/:id', async (req, res) => {
+  const { id } = req.params;
+  const query = `
+    SELECT 
+      t.id AS tournament_id, 
+      t.name AS tournament_name,
+      r.id AS round_id,
+      r.round_number AS round_number,
+      m.id AS match_id,
+      m.player1_id,
+      m.player2_id,
+      m.result
+    FROM tournaments t
+    LEFT JOIN rounds r ON t.id = r.tournament_id
+    LEFT JOIN matches m ON r.id = m.round_id
+    WHERE t.id = ?
+  `;
+
+  try {
+    const rows = await db.execute(query, [id]);
+    console.log(rows.rows)
+    // Procesar datos para estructurar el resultado
+    const tournamentData = {
+      id: id,
+      name: rows.rows[0].tournament_name || null,
+      rounds: [],
+    };
+
+    const roundMap = new Map();
+
+    rows.rows.forEach(row => {
+      if (!roundMap.has(row.round_id) && row.round_id) {
+        roundMap.set(row.round_id, {
+          id: row.round_id,
+          round_number: row.round_number,
+          matches: [],
+        });
+        tournamentData.rounds.push(roundMap.get(row.round_id));
+      }
+
+      if (row.match_id) {
+        roundMap.get(row.round_id)?.matches.push({
+          id: row.match_id,
+          player1_id: row.player1_id,
+          player2_id: row.player2_id,
+          result:row.result
+        });
+      }
+    });
+
+    res.json(tournamentData);
+  } catch (error) {
+    console.error('Error fetching tournament data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 app.get('/tournament/:id/standings', async(req,res)=>{
   const { id } = req.params;
 
@@ -1022,6 +1239,99 @@ app.delete('/news/:id', async(req, res) => {
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
 });
+
+
+app.delete('/player/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM players WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'Jugador eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar la noticia:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+app.delete('/event/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM events WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'Evento eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar Evento:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+app.delete('/tournament/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM tournaments WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'Torneo eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar Torneo:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+app.delete('/round/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM rounds WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'Ronda eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar Ronda:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+
+app.delete('/match/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM matches WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'match eliminada correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar match:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
 
 
 
