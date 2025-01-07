@@ -50,6 +50,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
 
 // Crear tablas en la base de datos si no existen
 (async () => {
@@ -123,7 +125,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
     name TEXT NOT NULL,
     club TEXT,
     category TEXT,
-    rating INTEGER NOT NULL,
+    rating INTEGER,
     elo TEXT,
     id_fide TEXT
 );
@@ -140,8 +142,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Ruta principal con formulario
 app.get('/', (req, res) => {
   res.send(`
-    <div>
+    <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formularios</title>
+    <link rel="stylesheet" href="styles.css">
+      </head>
+    <body>
       <div>
+      <div class='div-form'>
         <form action="/events" method="POST">
           <h1>Subir Evento</h1>
           <label>Título del Evento:</label><br>
@@ -158,9 +169,66 @@ app.get('/', (req, res) => {
           <input type="time" name="time" required><br>
           <button type="submit">Enviar</button>
         </form>
+      </form>
+ <form id='update-form-event' method="PUT">
+  <h1>Actualizar Evento</h1>
+          <label>ID del Evento:</label><br>
+          <input type="text" name="id" id="event-id" required><br>
+          <label>Título del Evento:</label><br>
+          <input type="text" name="title" id="event-title" ><br>
+          <label>Locación:</label><br>
+          <input type="text" name="location" id="event-location" ><br>
+          <label>Descripción:</label><br>
+          <textarea name="description" id="event-description"></textarea><br>
+          <label>Tipo de evento:</label><br>
+          <input name="type" id="event-type"><br>
+          <label>Fecha:</label><br>
+          <input type="date" name="date" id="event-date" ><br>
+          <label>Horario:</label><br>
+          <input type="time" name="time" id="event-time" ><br>
+          <button type="submit">Enviar</button>
+</form>
+ <script>
+          document.getElementById('update-form-event').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('event-id').value;
+            const title = document.getElementById('event-title').value;
+            const location = document.getElementById('event-location').value;
+            const description = document.getElementById('event-description').value;
+            const type = document.getElementById('event-type').value;
+            const date = document.getElementById('event-date').value;
+            const time = document.getElementById('event-time').value;
+
+            if (id) {
+         
+              try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/events/\${id}\`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ title, location, description, type, date, time }),
+                });
+
+                const result = await response.json();
+                console.log(result)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar el evento.');
+              }
+            }
+          });
+        </script>
       </div>
 
-      <div>
+      <div class='div-form'>
         <form action="/news" method="POST" enctype="multipart/form-data">
   <h1>Subir Noticia</h1>
   <label>Título de la noticia:</label><br>
@@ -172,9 +240,50 @@ app.get('/', (req, res) => {
   <button type="submit">Enviar</button>
 </form>
 
+<form id="deleteForm-news">
+    <label for="id">ID del Elemento a Eliminar:</label>
+    <input type="number" id="id-news" name="id" required>
+    <button type="submit">Eliminar</button>
+  </form>
+
+<script>
+          document.getElementById('deleteForm-news').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('id-news').value;
+            
+
+            if (id) {
+           
+              try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/news/\${id}\`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                 
+                });
+
+                const result = await response.json();
+                console.log(result)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar noticia.');
+              }
+            }
+          });
+        </script>
+
+
       </div>
 
-       <div>
+       <div class='div-form'>
     <form action="/players" method="POST">
   <h1>Subir Jugador</h1>
   <label>Nombre y apellido del jugador:</label><br>
@@ -184,14 +293,72 @@ app.get('/', (req, res) => {
   <label>Categoria:</label><br>
   <input type="text" name="category" ><br>
    <label>Rating:</label><br>
-  <input type="text" name="rating" required><br>
+  <input type="text" name="rating"><br>
   <label>Elo:</label><br>
   <input type="text" name="elo"><br>
   <label>ID Fide:</label><br>
   <input type="text" name="id_fide"><br>
   <button type="submit">Enviar</button>
 </form>
+ <form id='update-form-player' method="PUT">
+  <h1>Subir Jugador</h1>
+   <label>ID del jugador:</label><br>
+  <input type="text" name="id" id="id-player" required><br>
+  <label>Nombre y apellido del jugador:</label><br>
+  <input type="text" name="name" id="name-player"><br>
+   <label>Club:</label><br>
+  <input type="text" name="club" id="club-player" ><br>
+  <label>Categoria:</label><br>
+  <input type="text" name="category" id="category-player" ><br>
+   <label>Rating:</label><br>
+  <input type="text" name="rating" id="rating-player"><br>
+  <label>Elo:</label><br>
+  <input type="text" name="elo" id="elo-player"><br>
+  <label>ID Fide:</label><br>
+  <input type="text" name="id_fide" id="id-fide-player"><br>
+  <button type="submit">Enviar</button>
+</form>
+ <script>
+          document.getElementById('update-form-player').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
+            const id = document.getElementById('id-player').value;
+            const name = document.getElementById('name-player').value;
+            const club = document.getElementById('club-player').value;
+            const category = document.getElementById('category-player').value;
+            const rating = document.getElementById('rating-player').value;
+            const elo = document.getElementById('elo-player').value;
+            const id_fide = document.getElementById('id-fide-player').value;
+
+            if (id) {
+            console.log('name:', name);  // Verifica el valor de 'name'
+            console.log('club:', club); 
+            console.log('category:', category); 
+            console.log('rating:', club); 
+              try {
+                // Aquí debes usar el template string correctamente
+                const response = await fetch(\`/players/\${id}\`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ name, club, category, rating, elo, id_fide }),
+                });
+
+                const result = await response.json();
+                console.log(result)
+                if (response.ok) {
+                  alert(result.message);
+                } else {
+                  alert('Error: ' + result.error);
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar el jugador.');
+              }
+            }
+          });
+        </script>
       </div>
 
       <div>
@@ -259,9 +426,16 @@ app.get('/', (req, res) => {
       </div>
    
     </div>
-  `);
+    </body>
+    
+    
+    </html>
+    `
+  );
 })
 
+
+///////////////////////////////-------SETTERS-----------------------///////////////////////////////
 
 app.post('/upload-images', upload.array('images', 50), async (req, res) => {
   try {
@@ -435,7 +609,14 @@ app.post('/events', async (req, res) => {
 })
 
 
-///////////////GETERS////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+///////////////////////////////-------GETTERS-----------------------///////////////////////////////
 
 //Ruta para obtener imagenes
 app.get('/images', async(req,res)=>{
@@ -695,6 +876,157 @@ app.get('/player/:id/matches', async (req, res) => {
       res.status(500).json({ message: 'Error interno del servidor.' });
   }
 });
+
+
+
+
+
+
+
+
+
+///////////////////////////////-------PUT-----------------------///////////////////////////////
+
+// Ruta para actualizar un jugador en la tabla players
+app.put('/players/:id', async (req, res) => {
+  const {id} = req?.params
+  const { name, club, category, rating, elo, id_fide } = req?.body
+  const fieldsToUpdate = [];
+  const values = [];
+  
+  // Si los campos están presentes, agregarlos a la consulta
+  if (name) {
+    fieldsToUpdate.push('name = ?');
+    values.push(name);
+  }
+  if (club) {
+    fieldsToUpdate.push('club = ?');
+    values.push(club);
+  }
+  if (category) {
+    fieldsToUpdate.push('category = ?');
+    values.push(category);
+  }
+  if (rating) {
+    fieldsToUpdate.push('rating = ?');
+    values.push(rating);
+  }
+  if (elo) {
+    fieldsToUpdate.push('elo = ?');
+    values.push(elo);
+  }
+  if (id_fide) {
+    fieldsToUpdate.push('id_fide = ?');
+    values.push(id_fide);
+  }
+  
+  // Asegurarse de que al menos un campo esté para actualizar
+  if (fieldsToUpdate.length === 0) {
+    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' });
+  }
+  
+  // Crear la consulta dinámica
+  const query = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+  values.push(id);
+  
+  // Ejecutar la consulta
+  try {
+    await db.execute(query, values);
+    res.status(200).json({ message: 'Jugador actualizado correctamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el jugador:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+
+})
+
+app.put('/events/:id', async (req, res) => {
+  const {id} = req?.params
+  const { title, location, description, type, date, time } = req?.body
+  const fieldsToUpdate = [];
+  const values = [];
+  
+  // Si los campos están presentes, agregarlos a la consulta
+  if (title) {
+    fieldsToUpdate.push('title = ?');
+    values.push(title);
+  }
+  if (location) {
+    fieldsToUpdate.push('location = ?');
+    values.push(location);
+  }
+  if (description) {
+    fieldsToUpdate.push('description = ?');
+    values.push(description);
+  }
+  if (type) {
+    fieldsToUpdate.push('type = ?');
+    values.push(type);
+  }
+  if (date) {
+    fieldsToUpdate.push('date = ?');
+    values.push(date);
+  }
+  if (time) {
+    fieldsToUpdate.push('time = ?');
+    values.push(time);
+  }
+  
+  // Asegurarse de que al menos un campo esté para actualizar
+  if (fieldsToUpdate.length === 0) {
+    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' });
+  }
+  
+  // Crear la consulta dinámica
+  const query = `UPDATE events SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+  values.push(id);
+  
+  // Ejecutar la consulta
+  try {
+    await db.execute(query, values);
+    res.status(200).json({ message: 'Evento actualizado correctamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el Evento:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+
+})
+
+
+
+
+
+
+
+
+
+////////////---------------------------DELETE--------------------------////////////////
+
+
+
+
+app.delete('/news/:id', async(req, res) => {
+  const { id } = req.params;
+  if(!id){
+   
+    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    
+  }
+  const query = `DELETE FROM news WHERE id = ?`;
+
+  try {
+    await db.execute(query, [id]);
+    res.status(200).json({ message: 'Noticia eliminada correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar la noticia:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
+
+
+
+
 
 
 
