@@ -799,7 +799,7 @@ app.get('/news', async (req, res) => {
       return res.status(400).json({ error: 'Invalid query parameters' });
     }
 
-    const query = 'SELECT * FROM news LIMIT ? OFFSET ?';
+    const query = 'SELECT * FROM news ORDER BY created_at DESC LIMIT ? OFFSET ?';
     const params = [parseInt(limit), parseInt(offset)];
     const result = await db.execute(query, params);
     
