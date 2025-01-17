@@ -5,28 +5,46 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { createClient } = require('@libsql/client');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const B2 = require('backblaze-b2');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 dotenv.config();
 
-// Configuración de Cloudinary
+
+///BLACKBLAZE FOR PGN
+const b2 = new B2({
+  accountId: process.env.B2_ACCOUNT_ID,
+  applicationKey: process.env.B2__APPLICATION_KEY,
+})
+
+const upload = multer({ dest: 'uploads/' })
+
+
+////IMAGES
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
+ 
 // Configuración del almacenamiento de Multer
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: 'news_images', // Carpeta en Cloudinary
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [
+      { width: 800, height: 600, crop: 'fit', quality: 'auto', fetch_format: 'webp' }, // Transformación para optimizar y convertir a WebP
+    ],
   },
 });
 
-const upload = multer({ storage });
+const uploadImages = multer({ storage });
+
+
 
 
 const app = express();
@@ -83,8 +101,8 @@ app.use(express.static('public'));
       CREATE TABLE IF NOT EXISTS tournaments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    mode TEXT NOT NULL,
-    location TEXT,
+    mode TEXT,
+    location TEXT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE
 );
@@ -104,6 +122,8 @@ app.use(express.static('public'));
     player1_id INTEGER NOT NULL,
     player2_id INTEGER NOT NULL,
     result TEXT NOT NULL, 
+    pgn TEXT, 
+    link TEXT, 
     FOREIGN KEY (round_id) REFERENCES rounds (id),
     FOREIGN KEY (player1_id) REFERENCES players (id),
     FOREIGN KEY (player2_id) REFERENCES players (id)
@@ -519,7 +539,7 @@ app.get('/', (req, res) => {
       </div>
 
          <div class="div-form">
-    <form action="/matches" method="POST">
+    <form action="/matches" method="POST" enctype="multipart/form-data">
   <h1>Subir Match</h1>
   <label>ID de la ronda:</label><br>
   <input type="text" name="round_id" required><br>
@@ -529,6 +549,10 @@ app.get('/', (req, res) => {
   <input type="text" name="player2_id" required><br>
    <label>Resultado:</label><br>
   <input type="text" name="result" required><br>
+  <label for="pgnFile">PGN File:</label>
+  <input type="file" id="pgnFile" name="pgnFile" accept=".pgn" /><br>
+  <label>Link de la partida:</label><br>
+  <input type="text" name="link"><br>
   <button type="submit">Enviar</button>
 </form>
 <form id="deleteForm-match">
@@ -597,7 +621,7 @@ app.get('/', (req, res) => {
 
 ///////////////////////////////-------SETTERS-----------------------///////////////////////////////
 
-app.post('/upload-images', upload.array('images', 50), async (req, res) => {
+app.post('/upload-images', uploadImages.array('images', 50), async (req, res) => {
   try {
       const { title, album } = req.body
       const uploadedFiles = req.files
@@ -699,19 +723,44 @@ app.post('/rounds', async(req,res)=>{
 
 })
 
-app.post('/matches', async(req,res)=>{
-
-  const {round_id, player1_id, player2_id, result} = req.body
+app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
+ 
+  const {round_id, player1_id, player2_id, result, link} = req.body
+  const filePath = req.file.path;
+  const fileName = req.file.originalname;
   
   if (!round_id || !player1_id || !player2_id || !result) {
     return res.status(400).send('ID de la ronda,de los jugadores y resultado son requeridos papulince')
   }
-
+  
   try {
+
+     // Autorizar con B2
+     await b2.authorize();
+
+     const fileData = await fs.readFile(filePath);
+
+     // Subir el archivo a Backblaze B2
+     const uploadUrlResponse = await b2.getUploadUrl({
+       bucketId: 'b10a85fece697f409d4d0910', // Reemplaza con tu Bucket ID
+     });
+ 
+     const uploadResponse = await b2.uploadFile({
+       uploadUrl: uploadUrlResponse.data.uploadUrl,
+       uploadAuthToken: uploadUrlResponse.data.authorizationToken,
+       fileName: `matches/${fileName}`, // Guardar en una carpeta específica en el bucket
+       data: fileData, // Leer archivo desde el sistema
+     });
+ 
+     // Obtener URL pública del archivo
+     const publicFileUrl = `https://f000.backblazeb2.com/file/FAO-pgn/matches/${fileName}`;
+
     await db.execute(
-      'INSERT INTO matches (round_id, player1_id,  player2_id, result) VALUES (?, ?, ?, ?)',
-      [round_id, player1_id, player2_id, result]
+      'INSERT INTO matches (round_id, player1_id,  player2_id, result, pgn, link) VALUES (?, ?, ?, ?, ?, ?)',
+      [round_id, player1_id, player2_id, result, publicFileUrl, link]
     )
+
+    await fs.unlink(filePath);
     res.status(201).send('Match agregado exitosamente')
   } catch (error) {
     console.error(error);
@@ -724,7 +773,7 @@ app.post('/matches', async(req,res)=>{
 
 
 
-app.post('/news', upload.single('image'), async (req, res) => {
+app.post('/news', uploadImages.single('image'), async (req, res) => {
   const { title, content } = req.body
   const image_url = req.file?.path // URL generada por Cloudinary
 
@@ -861,6 +910,7 @@ app.get('/tournaments/all', async (req, res) => {
         tournaments.id AS tournament_id,
         tournaments.name AS tournament_name,
         tournaments.location AS tournament_location,
+        tournaments.mode AS tournament_mode,
         tournaments.start_date AS tournament_start_date,
         rounds.round_number AS round_number,
         matches.player1_id AS player1_id,
@@ -882,6 +932,7 @@ app.get('/tournaments/all', async (req, res) => {
           id: row.tournament_id,
           name: row.tournament_name,
           location: row.tournament_location,
+          mode:row.tournament_mode,
           start_date:row.tournament_start_date,
           rounds: [],
         };

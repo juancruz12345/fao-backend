@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@libsql/client": "^0.14.0",
+    "backblaze-b2": "^1.7.0",
     "body-parser": "^1.20.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
