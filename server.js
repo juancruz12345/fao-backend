@@ -40,11 +40,9 @@ const storage = new CloudinaryStorage({
       { width: 800, height: 600, crop: 'fit', quality: 'auto', fetch_format: 'webp' }, // Transformación para optimizar y convertir a WebP
     ],
   },
-});
+})
 
 const uploadImages = multer({ storage });
-
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -68,6 +66,8 @@ app.use(cors({
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+
 
 
 // Crear tablas en la base de datos si no existen
