@@ -915,7 +915,9 @@ app.get('/tournaments/all', async (req, res) => {
         rounds.round_number AS round_number,
         matches.player1_id AS player1_id,
         matches.player2_id AS player2_id,
-        matches.result AS match_result
+        matches.result AS match_result,
+        matches.pgn AS match_pgn,
+        matches.link AS match_link
       FROM tournaments
       LEFT JOIN rounds ON tournaments.id = rounds.tournament_id
       LEFT JOIN matches ON rounds.id = matches.round_id
@@ -956,6 +958,8 @@ app.get('/tournaments/all', async (req, res) => {
             player1_id: row.player1_id,
             player2_id: row.player2_id,
             result: row.match_result,
+            pgn: row.match_pgn,
+            link: row.match_link,
           });
         }
       }
@@ -1080,6 +1084,7 @@ app.get('/tournament/:id/standings', async(req,res)=>{
         res.status(500).json({ message: 'Error interno del servidor.' });
     }
 })
+
 app.get('/player/:id/matches', async (req, res) => {
   const { id } = req.params;
 
@@ -1092,22 +1097,10 @@ app.get('/player/:id/matches', async (req, res) => {
               p1.name AS player1_name,
               p2.name AS player2_name,
               m.result,
+              m.pgn,
+              m.link,
               t.start_date AS tournament_start_date,
-              t.end_date AS tournament_end_date,
-              CASE 
-                  WHEN m.player1_id = ? AND m.result = '1-0' THEN 1
-                  WHEN m.player2_id = ? AND m.result = '0-1' THEN 1
-                  ELSE 0
-              END AS is_victory,
-              CASE 
-                  WHEN m.player1_id = ? AND m.result = '0-1' THEN 1
-                  WHEN m.player2_id = ? AND m.result = '1-0' THEN 1
-                  ELSE 0
-              END AS is_defeat,
-              CASE 
-                  WHEN m.result = '1/2-1/2' THEN 1
-                  ELSE 0
-              END AS is_draw
+              t.end_date AS tournament_end_date
           FROM matches m
           JOIN rounds r ON m.round_id = r.id
           JOIN tournaments t ON r.tournament_id = t.id
@@ -1116,8 +1109,8 @@ app.get('/player/:id/matches', async (req, res) => {
           WHERE m.player1_id = ? OR m.player2_id = ?
           ORDER BY t.start_date, r.round_number;
       `;
-
-      const result = await db.execute(query, [id, id, id, id, id, id]);
+     
+      const result = await db.execute(query, [id, id]);
 
       const matches = result.rows.map(row => ({
           match_id: row[0],
@@ -1126,24 +1119,21 @@ app.get('/player/:id/matches', async (req, res) => {
           player1_name: row[3],
           player2_name: row[4],
           result: row[5],
-          tournament_start_date: row[6],
-          tournament_end_date: row[7],
-          is_victory: row[8],
-          is_defeat: row[9],
-          is_draw: row[10],
-      }));
+          pgn:row[6],
+          link:row[7],
+          tournament_start_date: row[8],
+          tournament_end_date: row[9]
+       
+      }))
 
-      // Calcular métricas
-      const totalVictories = matches.reduce((sum, match) => sum + match.is_victory, 0);
-      const totalDefeats = matches.reduce((sum, match) => sum + match.is_defeat, 0);
-      const totalDraws = matches.reduce((sum, match) => sum + match.is_draw, 0);
+      
 
-      res.json({ matches, totalVictories, totalDefeats, totalDraws });
+      res.json({ matches})
   } catch (error) {
-      console.error('Error al obtener las partidas del jugador:', error);
-      res.status(500).json({ message: 'Error interno del servidor.' });
+      console.error('Error al obtener las partidas del jugador:', error)
+      res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 
 
@@ -1159,51 +1149,51 @@ app.get('/player/:id/matches', async (req, res) => {
 app.put('/players/:id', async (req, res) => {
   const {id} = req?.params
   const { name, club, category, rating, elo, id_fide } = req?.body
-  const fieldsToUpdate = [];
-  const values = [];
+  const fieldsToUpdate = []
+  const values = []
   
   // Si los campos están presentes, agregarlos a la consulta
   if (name) {
-    fieldsToUpdate.push('name = ?');
-    values.push(name);
+    fieldsToUpdate.push('name = ?')
+    values.push(name)
   }
   if (club) {
-    fieldsToUpdate.push('club = ?');
-    values.push(club);
+    fieldsToUpdate.push('club = ?')
+    values.push(club)
   }
   if (category) {
-    fieldsToUpdate.push('category = ?');
-    values.push(category);
+    fieldsToUpdate.push('category = ?')
+    values.push(category)
   }
   if (rating) {
-    fieldsToUpdate.push('rating = ?');
-    values.push(rating);
+    fieldsToUpdate.push('rating = ?')
+    values.push(rating)
   }
   if (elo) {
-    fieldsToUpdate.push('elo = ?');
-    values.push(elo);
+    fieldsToUpdate.push('elo = ?')
+    values.push(elo)
   }
   if (id_fide) {
-    fieldsToUpdate.push('id_fide = ?');
-    values.push(id_fide);
+    fieldsToUpdate.push('id_fide = ?')
+    values.push(id_fide)
   }
   
   // Asegurarse de que al menos un campo esté para actualizar
   if (fieldsToUpdate.length === 0) {
-    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' });
+    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' })
   }
   
   // Crear la consulta dinámica
-  const query = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
-  values.push(id);
+  const query = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE id = ?`
+  values.push(id)
   
   // Ejecutar la consulta
   try {
-    await db.execute(query, values);
-    res.status(200).json({ message: 'Jugador actualizado correctamente.' });
+    await db.execute(query, values)
+    res.status(200).json({ message: 'Jugador actualizado correctamente.' })
   } catch (error) {
     console.error('Error al actualizar el jugador:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
 
 })
@@ -1211,51 +1201,50 @@ app.put('/players/:id', async (req, res) => {
 app.put('/events/:id', async (req, res) => {
   const {id} = req?.params
   const { title, location, description, type, date, time } = req?.body
-  const fieldsToUpdate = [];
-  const values = [];
+  const fieldsToUpdate = []
+  const values = []
   
-  // Si los campos están presentes, agregarlos a la consulta
+  
   if (title) {
-    fieldsToUpdate.push('title = ?');
-    values.push(title);
+    fieldsToUpdate.push('title = ?')
+    values.push(title)
   }
   if (location) {
-    fieldsToUpdate.push('location = ?');
-    values.push(location);
+    fieldsToUpdate.push('location = ?')
+    values.push(location)
   }
   if (description) {
-    fieldsToUpdate.push('description = ?');
-    values.push(description);
+    fieldsToUpdate.push('description = ?')
+    values.push(description)
   }
   if (type) {
-    fieldsToUpdate.push('type = ?');
-    values.push(type);
+    fieldsToUpdate.push('type = ?')
+    values.push(type)
   }
   if (date) {
-    fieldsToUpdate.push('date = ?');
-    values.push(date);
+    fieldsToUpdate.push('date = ?')
+    values.push(date)
   }
   if (time) {
-    fieldsToUpdate.push('time = ?');
-    values.push(time);
+    fieldsToUpdate.push('time = ?')
+    values.push(time)
   }
   
-  // Asegurarse de que al menos un campo esté para actualizar
+  
   if (fieldsToUpdate.length === 0) {
-    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' });
+    return res.status(400).json({ message: 'No se han proporcionado campos para actualizar' })
   }
   
-  // Crear la consulta dinámica
-  const query = `UPDATE events SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
-  values.push(id);
   
-  // Ejecutar la consulta
+  const query = `UPDATE events SET ${fieldsToUpdate.join(', ')} WHERE id = ?`
+  values.push(id)
+ 
   try {
-    await db.execute(query, values);
-    res.status(200).json({ message: 'Evento actualizado correctamente.' });
+    await db.execute(query, values)
+    res.status(200).json({ message: 'Evento actualizado correctamente.' })
   } catch (error) {
-    console.error('Error al actualizar el Evento:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    console.error('Error al actualizar el Evento:', error)
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
 
 })
@@ -1274,114 +1263,114 @@ app.put('/events/:id', async (req, res) => {
 
 
 app.delete('/news/:id', async(req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM news WHERE id = ?`;
+  const query = `DELETE FROM news WHERE id = ?`
 
   try {
-    await db.execute(query, [id]);
-    res.status(200).json({ message: 'Noticia eliminada correctamente.' });
+    await db.execute(query, [id])
+    res.status(200).json({ message: 'Noticia eliminada correctamente.' })
   } catch (error) {
     console.error('Error al eliminar la noticia:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 
 app.delete('/player/:id', async(req, res) => {
   const { id } = req.params;
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM players WHERE id = ?`;
+  const query = `DELETE FROM players WHERE id = ?`
 
   try {
     await db.execute(query, [id]);
-    res.status(200).json({ message: 'Jugador eliminado correctamente.' });
+    res.status(200).json({ message: 'Jugador eliminado correctamente.' })
   } catch (error) {
     console.error('Error al eliminar la noticia:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 app.delete('/event/:id', async(req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM events WHERE id = ?`;
+  const query = `DELETE FROM events WHERE id = ?`
 
   try {
     await db.execute(query, [id]);
-    res.status(200).json({ message: 'Evento eliminado correctamente.' });
+    res.status(200).json({ message: 'Evento eliminado correctamente.' })
   } catch (error) {
-    console.error('Error al eliminar Evento:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    console.error('Error al eliminar Evento:', error)
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 app.delete('/tournament/:id', async(req, res) => {
   const { id } = req.params;
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM tournaments WHERE id = ?`;
+  const query = `DELETE FROM tournaments WHERE id = ?`
 
   try {
-    await db.execute(query, [id]);
-    res.status(200).json({ message: 'Torneo eliminado correctamente.' });
+    await db.execute(query, [id])
+    res.status(200).json({ message: 'Torneo eliminado correctamente.' })
   } catch (error) {
     console.error('Error al eliminar Torneo:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 app.delete('/round/:id', async(req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM rounds WHERE id = ?`;
+  const query = `DELETE FROM rounds WHERE id = ?`
 
   try {
-    await db.execute(query, [id]);
-    res.status(200).json({ message: 'Ronda eliminado correctamente.' });
+    await db.execute(query, [id])
+    res.status(200).json({ message: 'Ronda eliminado correctamente.' })
   } catch (error) {
-    console.error('Error al eliminar Ronda:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    console.error('Error al eliminar Ronda:', error)
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 
 app.delete('/match/:id', async(req, res) => {
-  const { id } = req.params;
+  const { id } = req.params
   if(!id){
    
-    return res.status(400).json({ message: 'No se han proporcionado un id' });
+    return res.status(400).json({ message: 'No se han proporcionado un id' })
     
   }
-  const query = `DELETE FROM matches WHERE id = ?`;
+  const query = `DELETE FROM matches WHERE id = ?`
 
   try {
     await db.execute(query, [id]);
-    res.status(200).json({ message: 'match eliminada correctamente.' });
+    res.status(200).json({ message: 'match eliminada correctamente.' })
   } catch (error) {
-    console.error('Error al eliminar match:', error);
-    res.status(500).json({ message: 'Error interno del servidor.' });
+    console.error('Error al eliminar match:', error)
+    res.status(500).json({ message: 'Error interno del servidor.' })
   }
-});
+})
 
 
 
