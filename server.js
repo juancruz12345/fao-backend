@@ -725,8 +725,8 @@ app.post('/rounds', async(req,res)=>{
 app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
  
   const {round_id, player1_id, player2_id, result, link} = req.body
-  const filePath = req.file.path;
-  const fileName = req.file.originalname;
+  const filePath = req?.file?.path;
+  const fileName = req?.file?.originalname;
   
   if (!round_id || !player1_id || !player2_id || !result) {
     return res.status(400).send('ID de la ronda,de los jugadores y resultado son requeridos papulince')
@@ -734,7 +734,8 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
   
   try {
 
-     // Autorizar con B2
+     if(filePath && fileName){
+      // Autorizar con B2
      await b2.authorize();
 
      const fileData = await fs.readFile(filePath);
@@ -761,6 +762,15 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
 
     await fs.unlink(filePath);
     res.status(201).send('Match agregado exitosamente')
+     }
+     else{
+      await db.execute(
+        'INSERT INTO matches (round_id, player1_id,  player2_id, result, link) VALUES (?, ?, ?, ?, ?)',
+        [round_id, player1_id, player2_id, result, link]
+      )
+      res.status(201).send('Match agregado exitosamente')
+     }
+    
   } catch (error) {
     console.error(error);
     res.status(500).send('Error al agregar el Match')
