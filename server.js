@@ -46,7 +46,6 @@ const uploadImages = multer({ storage });
 
 
 
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -742,7 +741,7 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
 
      // Subir el archivo a Backblaze B2
      const uploadUrlResponse = await b2.getUploadUrl({
-       bucketId: 'b10a85fece697f409d4d0910', // Reemplaza con tu Bucket ID
+       bucketId: process.env.B2_BUCKET_ID,
      });
  
      const uploadResponse = await b2.uploadFile({
@@ -753,7 +752,7 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
      });
  
      // Obtener URL pública del archivo
-     const publicFileUrl = `https://f000.backblazeb2.com/file/FAO-pgn/matches/${fileName}`;
+     const publicFileUrl = `https://f005.backblazeb2.com/file/FAO-pgn/matches/${fileName}`;
 
     await db.execute(
       'INSERT INTO matches (round_id, player1_id,  player2_id, result, pgn, link) VALUES (?, ?, ?, ?, ?, ?)',
@@ -960,11 +959,11 @@ app.get('/tournaments/all', async (req, res) => {
             result: row.match_result,
             pgn: row.match_pgn,
             link: row.match_link,
-          });
+          })
         }
       }
 
-      return acc;
+      return acc
     }, []);
 
     res.json(structuredData);
