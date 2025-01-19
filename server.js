@@ -903,15 +903,28 @@ app.get('/rounds', async(req,res)=>{
     res.status(500).json({ error: 'Error al obtener los rounds.' })
   }
 })
-app.get('/matches', async(req,res)=>{
+app.get('/matches', async (req, res) => {
   try {
-    const matches = await db.execute('SELECT * FROM matches')
-    res.json(matches.rows)
+    const query = `
+      SELECT 
+        matches.*, 
+        tournaments.name AS tournament_name
+      FROM 
+        matches
+      INNER JOIN 
+        rounds ON matches.round_id = rounds.id
+      INNER JOIN 
+        tournaments ON rounds.tournament_id = tournaments.id
+    `;
+    
+    const matches = await db.execute(query);
+    res.json(matches.rows);
   } catch (error) {
-    console.error('Error al obtener matches:', error)
-    res.status(500).json({ error: 'Error al obtener los matches.' })
+    console.error('Error al obtener matches:', error);
+    res.status(500).json({ error: 'Error al obtener los matches.' });
   }
-})
+});
+
 app.get('/tournaments/all', async (req, res) => {
   try {
     const allData = await db.execute(`
