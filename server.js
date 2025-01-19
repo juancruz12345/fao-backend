@@ -908,7 +908,8 @@ app.get('/matches', async (req, res) => {
     const query = `
       SELECT 
         matches.*, 
-        tournaments.name AS tournament_name
+        tournaments.name AS tournament_name, 
+        tournaments.start_date AS tournament_start_date
       FROM 
         matches
       INNER JOIN 
@@ -924,6 +925,7 @@ app.get('/matches', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los matches.' });
   }
 });
+
 
 app.get('/tournaments/all', async (req, res) => {
   try {
