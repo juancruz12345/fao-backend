@@ -162,7 +162,7 @@ app.use(express.static('public'));
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
-      <html lang="en">
+      <html lang="es">
       <head>
       <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -255,7 +255,7 @@ app.get('/', (req, res) => {
             if (id) {
          
               try {
-                // Aquí debes usar el template string correctamente
+               
                 const response = await fetch(\`/events/\${id}\`, {
                   method: 'PUT',
                   headers: {
@@ -304,7 +304,7 @@ app.get('/', (req, res) => {
             const id = document.getElementById('id-news').value;
             if (id) {
             try {
-                // Aquí debes usar el template string correctamente
+               
                 const response = await fetch(\`/news/\${id}\`, {
                   method: 'DELETE',
                   headers: {
@@ -376,7 +376,7 @@ app.get('/', (req, res) => {
             const id = document.getElementById('id-player-delete').value;
             if (id) {
             try {
-                // Aquí debes usar el template string correctamente
+                
                 const response = await fetch(\`/player/\${id}\`, {
                   method: 'DELETE',
                   headers: {
@@ -416,7 +416,7 @@ app.get('/', (req, res) => {
             console.log('category:', category); 
             console.log('rating:', club); 
               try {
-                // Aquí debes usar el template string correctamente
+                
                 const response = await fetch(\`/players/\${id}\`, {
                   method: 'PUT',
                   headers: {
@@ -467,7 +467,7 @@ app.get('/', (req, res) => {
             const id = document.getElementById('id-tournament-delete').value;
             if (id) {
             try {
-                // Aquí debes usar el template string correctamente
+               
                 const response = await fetch(\`/tournament/\${id}\`, {
                   method: 'DELETE',
                   headers: {
@@ -512,7 +512,7 @@ app.get('/', (req, res) => {
             const id = document.getElementById('id-round-delete').value;
             if (id) {
             try {
-                // Aquí debes usar el template string correctamente
+                
                 const response = await fetch(\`/round/\${id}\`, {
                   method: 'DELETE',
                   headers: {
@@ -565,7 +565,7 @@ app.get('/', (req, res) => {
             const id = document.getElementById('id-match-delete').value;
             if (id) {
             try {
-                // Aquí debes usar el template string correctamente
+                
                 const response = await fetch(\`/match/\${id}\`, {
                   method: 'DELETE',
                   headers: {
@@ -614,7 +614,7 @@ app.get('/', (req, res) => {
     
     </html>
     `
-  );
+  )
 })
 
 
@@ -682,7 +682,7 @@ app.post('/players', async(req,res)=>{
 
 app.post('/tournaments', async(req,res)=>{
 
-  const { name,mode,location, start_date, end_date } = req.body;
+  const { name,mode,location, start_date, end_date } = req.body
   
 
   if (!name || !mode || !location || !start_date) {
@@ -706,7 +706,7 @@ app.post('/rounds', async(req,res)=>{
   const {tournament_id, round_number} = req.body
 
   if (!tournament_id || !round_number) {
-    return res.status(400).send('id de torneo y numero de ronda son requeridos papulino')
+    return res.status(400).send('id de torneo y numero de ronda son requeridos papino')
   }
   
   try {
@@ -716,7 +716,7 @@ app.post('/rounds', async(req,res)=>{
     )
     res.status(201).send('Ronda agregado exitosamente')
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res.status(500).send('Error al agregar ronda')
   }
 
@@ -725,11 +725,11 @@ app.post('/rounds', async(req,res)=>{
 app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
  
   const {round_id, player1_id, player2_id, result, link} = req.body
-  const filePath = req?.file?.path;
-  const fileName = req?.file?.originalname;
+  const filePath = req?.file?.path
+  const fileName = req?.file?.originalname
   
   if (!round_id || !player1_id || !player2_id || !result) {
-    return res.status(400).send('ID de la ronda,de los jugadores y resultado son requeridos papulince')
+    return res.status(400).send('ID de la ronda, de los jugadores y el resultado son requeridos papulince')
   }
   
   try {
@@ -743,17 +743,17 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
      // Subir el archivo a Backblaze B2
      const uploadUrlResponse = await b2.getUploadUrl({
        bucketId: process.env.B2_BUCKET_ID,
-     });
+     })
  
      const uploadResponse = await b2.uploadFile({
        uploadUrl: uploadUrlResponse.data.uploadUrl,
        uploadAuthToken: uploadUrlResponse.data.authorizationToken,
        fileName: `matches/${fileName}`, // Guardar en una carpeta específica en el bucket
        data: fileData, // Leer archivo desde el sistema
-     });
+     })
  
      // Obtener URL pública del archivo
-     const publicFileUrl = `https://f005.backblazeb2.com/file/FAO-pgn/matches/${fileName}`;
+     const publicFileUrl = `https://f005.backblazeb2.com/file/FAO-pgn/matches/${fileName}`
 
     await db.execute(
       'INSERT INTO matches (round_id, player1_id,  player2_id, result, pgn, link) VALUES (?, ?, ?, ?, ?, ?)',
@@ -772,7 +772,7 @@ app.post('/matches',upload.single('pgnFile'), async(req,res)=>{
      }
     
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res.status(500).send('Error al agregar el Match')
   }
 
