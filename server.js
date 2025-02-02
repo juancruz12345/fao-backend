@@ -68,15 +68,23 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+
 app.post("/analyze", async (req, res) => {
+  const { fen, depth } = req.body;
+
+  if (!fen || !depth) {
+    return res.status(400).json({ error: "FEN y depth son requeridos" });
+  }
+
   try {
-    const response = await axios.post("https://stockfish.online/api/v2/analyze", req.body, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const response = await axios.post("https://stockfish.online/api/v2/analyze", {
+      fen: fen,
+      depth: depth,
     });
+
     res.json(response.data);
   } catch (error) {
+    console.error("Error en el backend:", error.response ? error.response.data : error.message);
     res.status(500).json({ error: "Error al analizar la posición" });
   }
 });
