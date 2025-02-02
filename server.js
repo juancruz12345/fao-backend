@@ -68,7 +68,18 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-
+app.post("/analyze", async (req, res) => {
+  try {
+    const response = await axios.post("https://stockfish.online/api/v2/analyze", req.body, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Error al analizar la posición" });
+  }
+});
 
 
 // Crear tablas en la base de datos si no existen
