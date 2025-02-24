@@ -10,6 +10,7 @@ const fs = require('fs').promises;
 const B2 = require('backblaze-b2');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const reader = require('fs')
 
 dotenv.config();
 
@@ -54,7 +55,9 @@ const ACCEPTED_ORIGINS = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://localhost:5173',
-  'https://federacionajedrezolavarria.onrender.com' // Incluye posibles variantes del origen
+  'https://federacionajedrezolavarria.onrender.com',
+  'https://federacionajedrezolavarria.com'
+  //  // Incluye posibles variantes del origen
 ];
 
 
@@ -68,10 +71,28 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+/*async function importJSON(json) {
+  const data = JSON.parse(reader.readFileSync(json, 'utf8'));
+  ///console.log(typeof data[0].link);
+ 
+ for (const item of data) {
+      await db.execute({
+          sql: 'INSERT INTO matches (round_id, player1_id, player2_id, result, pgn, link) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [item.round_id, item.player1_id, item.player2_id, item.result, item.pgn, item.link],
+      });
+      
+  }
+      
+  console.log('Importación completada');
+}
+importJSON('matches.json') */
+
+
+
 
 app.post("/analyze", async (req, res) => {
   const { fen, depth } = req.body;
-
+ 
   if (!fen || !depth) {
     return res.status(400).json({ error: "FEN y depth son requeridos" });
   }
@@ -89,10 +110,22 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
+async function verDB() {
+  try {
+      const resultado = await db.execute('SELECT * FROM matches'); // Cambia 'productos' por tu tabla
+      console.log(resultado.rows); // Muestra los datos en consola
+  } catch (error) {
+      console.error('Error al consultar la DB:', error);
+  }
+} 
 
+// Llamar a la función después de definirla
+//verDB();
 // Crear tablas en la base de datos si no existen
 (async () => {
   try {
+    
+
     await db.execute(`
       CREATE TABLE IF NOT EXISTS news (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +187,6 @@ app.post("/analyze", async (req, res) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       url TEXT NOT NULL,
-      album TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       `
